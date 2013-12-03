@@ -12,16 +12,14 @@ module Lolcommits
     def initialize(runner)
       super
       self.name    = 'lolsrv'
-      self.default = false  
+      self.default = false
       self.options << SERVER
-
     end
 
     def run
-      
       log_file = File.new(self.runner.config.loldir + "/lolsrv.log", "a+")
       @logger = Logger.new(log_file)
-      
+
       if configuration[SERVER].nil?
         puts "Missing server configuration. Use lolcommits --config -p lolsrv"
         return
@@ -35,11 +33,9 @@ module Lolcommits
     def sync
       existing = get_existing_lols
       unless existing.nil?
-        Dir.glob(self.runner.config.loldir + "/*.jpg") do |item|
-          next if item == '.' or item == '..'
-          # do work on real items
+        Dir[self.runner.config.loldir + "/*.{jpg,gif}"].each do |item|
           sha = File.basename(item, '.*')
-          unless existing.include?(sha) || sha == 'tmp_snapshot' 
+          unless existing.include?(sha) || sha == 'tmp_snapshot'
             upload(item, sha)
           end
         end
@@ -48,8 +44,7 @@ module Lolcommits
 
     def get_existing_lols
       begin
-        lols = JSON.parse(
-        RestClient.get(configuration[SERVER] + '/lols'))
+        lols = JSON.parse(RestClient.get(configuration[SERVER] + '/lols'))
         lols.map { |lol| lol["sha"] }
       rescue => error
         @logger.info "Existing lols could not be retrieved with Error " + error.message
@@ -60,10 +55,9 @@ module Lolcommits
 
     def upload(file, sha)
       begin
-        RestClient.post(
-        configuration[SERVER] + '/uplol', 
-        :lol => File.new(file),
-        :sha => sha) 
+        RestClient.post(configuration[SERVER] + '/uplol',
+          :lol => File.new(file),
+          :sha => sha)
       rescue => error
         @logger.info "Upload of LOL "+ sha + " failed with Error " + error.message
         return
